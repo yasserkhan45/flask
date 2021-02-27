@@ -1,13 +1,22 @@
 {% extends 'base.html' %}
 {%block title %} Contact Us! {% endblock %}
 {% block content %}
-    <h1> Contact Us! </h1>
-    <form method = "POST" action = "">
+    <div>
+        {% for message in get_flashed_messages() %}
+            <div class = "flash" id="msg">
+                <a href="#" onclick="closeFlash()"><b>&times;</b></a>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    <br><br><br>
+    <form method = "POST" action = "" class = "box">
+        <h1> Contact Us! </h1>
         {{ form.hidden_tag() }}
-        {{ form.name.label }}<br> {{ form.name() }}<br><br>
-        {{ form.email.label }}:<br> {{ form.email() }}<br><br>
-        {{ form.subject.label }}:<br> {{ form.subject() }}<br><br>
-        {{ form.message.label }}:<br> {{ form.message() }}<br><br>
+        {{ form.name.label }}<br> {{ form.name() }}
+        {{ form.email.label }}:<br> {{ form.email() }}
+        {{ form.subject.label }}:<br> {{ form.subject() }}
+        {{ form.message.label }}:<br> {{ form.message() }}
         {{ form.submit()}}
     </form>
 {% endblock %}
