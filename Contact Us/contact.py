@@ -2,7 +2,6 @@ from flask import Flask, render_template, session, redirect, url_for, flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired
-from flask_mail import Mail
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secretKey"
 
@@ -28,3 +27,11 @@ def index():
         flash('Thanks for contacting us. We\'ll get back to you soon!')
         return redirect(url_for('index'))
     return render_template('index.html', form=form,name=session.get('name'),email=session.get('email'),subject=session.get('subject'),message=session.get('message'))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('505.html'), 505
