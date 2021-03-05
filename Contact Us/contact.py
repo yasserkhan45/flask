@@ -2,8 +2,29 @@ from flask import Flask, render_template, session, redirect, url_for, flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired
+from flask_sqlalchemy import SQLAlchemy
+
+import os
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secretKey"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key = True)
+    username = db.Column(db.String(64), index = True)
+    email = db.Column(db.String(30), unique = True, index = True)
+    subject = db.Column(db.String(150))
+    message = db.Column(db.String(300))
+
+    def __repr__(self):
+        return '<User %r \nEmail %r \nSubject %r \nMessage %r>' % (self.username, self.email, self.subject, self.message)
 
 class ContactForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
@@ -14,8 +35,20 @@ class ContactForm(FlaskForm):
 
 @app.route('/', methods=['GET','POST'])
 def index():
+    name = None
+    email = None
+    subject = None
+    message = None
     form = ContactForm()
     if form.validate_on_submit():
+        user = User.query.filter_by(email = form.email.data).first()
+        if user is None:
+            user = User(username = form.email.data)
+            db.session.add(user)
+            db.session.commit()
+            session['exists'] = False
+        else:
+            session['exists'] = True
         session['name'] = form.name.data
         session['email'] = form.email.data
         session['subject'] = form.subject.data
@@ -26,7 +59,12 @@ def index():
         form.message.data = ""
         flash('Thanks for contacting us. We\'ll get back to you soon!')
         return redirect(url_for('index'))
-    return render_template('index.html', form=form,name=session.get('name'),email=session.get('email'),subject=session.get('subject'),message=session.get('message'))
+    return render_template('index.html', 
+    form = form, name = session.get('name'), 
+    email = session.get('email'), 
+    subject = session.get('subject'), 
+    message = session.get('message'), 
+    exists = session.get('exists', False))
 
 @app.errorhandler(404)
 def page_not_found(e):
