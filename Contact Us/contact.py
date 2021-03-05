@@ -3,6 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -14,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'da
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class User(db.Model):
     __tablename__ = "users"
@@ -43,12 +45,12 @@ def index():
     if form.validate_on_submit():
         user = User.query.filter_by(email = form.email.data).first()
         if user is None:
-            user = User(username = form.email.data)
+            user = User(email = form.email.data)
             db.session.add(user)
             db.session.commit()
-            session['exists'] = False
+            flash('Thanks for contacting us. We\'ll get back to you soon!')
         else:
-            session['exists'] = True
+            flash("We've already recieved your request, please wait for us to get back to you!")
         session['name'] = form.name.data
         session['email'] = form.email.data
         session['subject'] = form.subject.data
@@ -57,14 +59,12 @@ def index():
         form.email.data = ""
         form.subject.data = ""
         form.message.data = ""
-        flash('Thanks for contacting us. We\'ll get back to you soon!')
         return redirect(url_for('index'))
     return render_template('index.html', 
     form = form, name = session.get('name'), 
     email = session.get('email'), 
     subject = session.get('subject'), 
-    message = session.get('message'), 
-    exists = session.get('exists', False))
+    message = session.get('message'))
 
 @app.errorhandler(404)
 def page_not_found(e):
