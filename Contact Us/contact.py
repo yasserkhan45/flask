@@ -21,9 +21,23 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
+app.config['MAIL_SUBJECT_PREFIX'] = '[FLASK APP]'
+app.config['MAIL_SENDER'] = 'ADMIN <khanyasser88@gmail.com>'
+app.config['ADMIN'] = os.environ.get('ADMIN')
+
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
+
+
+def send_mail(to, subject, template, **kwargs):
+    msg = Message(app.config['MAIL_SUBJECT_PREFIX'] + subject, 
+    sender = app.config['MAIL_SENDER'],
+    recipients = [to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    mail.send(msg)
 
 class User(db.Model):
     __tablename__ = "users"
@@ -53,10 +67,15 @@ def index():
     if form.validate_on_submit():
         user = User.query.filter_by(email = form.email.data).first()
         if user is None:
-            user = User(email = form.email.data)
+            user = User(username = form.name.data,
+            email = form.email.data,
+            subject = form.subject.data,
+            message = form.message.data)
             db.session.add(user)
             db.session.commit()
             flash('Thanks for contacting us. We\'ll get back to you soon!')
+            if app.config['ADMIN']:
+                send_mail(app.config['ADMIN'], 'New User', 'mail/new_user', user = user)
         else:
             flash("We've already recieved your request, please wait for us to get back to you!")
         session['name'] = form.name.data
@@ -69,7 +88,8 @@ def index():
         form.message.data = ""
         return redirect(url_for('index'))
     return render_template('index.html', 
-    form = form, name = session.get('name'), 
+    form = form, 
+    name = session.get('name'), 
     email = session.get('email'), 
     subject = session.get('subject'), 
     message = session.get('message'))

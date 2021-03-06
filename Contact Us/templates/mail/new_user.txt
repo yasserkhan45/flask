@@ -1,0 +1,1 @@
+New user registered {{ user.username }} with email: {{ user.email }} subject: {{ user.subject }} message: {{ user.message }}
