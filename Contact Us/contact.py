@@ -5,6 +5,7 @@ from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail, Message
+from threading import Thread
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -30,6 +31,9 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
 
+def send_mail_async(app, msg):
+    with app.app_context():
+        mail.send(msg)
 
 def send_mail(to, subject, template, **kwargs):
     msg = Message(app.config['MAIL_SUBJECT_PREFIX'] + subject, 
@@ -37,8 +41,10 @@ def send_mail(to, subject, template, **kwargs):
     recipients = [to])
     msg.body = render_template(template + '.txt', **kwargs)
     msg.html = render_template(template + '.html', **kwargs)
-    mail.send(msg)
-
+    thr = Thread(target = send_mail_async, args = [app, msg])
+    thr.start()
+    return thr
+    
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key = True)
